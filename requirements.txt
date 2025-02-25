@@ -1,3 +1,4 @@
 flask
 requests
 slack_sdk
+load_dotenv
