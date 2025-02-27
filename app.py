@@ -100,7 +100,7 @@ def gettrenddata(keyword1,keyword2,startDate,endDate):
     body=str(body_dict).replace("'",'"') # ' 문자로는 에러가 발생해서 " 로 변환
 
     # request = urllib.request.Request(url)
-    # request.add_header("X-Naver-Client-Id",client_id)
+    # request.add_header("X-Naver-Client-Id",CLIENT_ID)
     # request.add_header("X-Naver-Client-Secret",client_secret)
     # request.add_header("Content-Type","application/json")
     # response = urllib.request.urlopen(request, data=body.encode("utf-8"))
@@ -112,7 +112,7 @@ def gettrenddata(keyword1,keyword2,startDate,endDate):
     #     print("Error Code:" + rescode)
 
     request = urllib.request.Request(url)
-    request.add_header("X-Naver-Client-Id",client_id)
+    request.add_header("X-Naver-Client-Id",CLIENT_ID)
     request.add_header("X-Naver-Client-Secret",client_secret)
     request.add_header("Content-Type","application/json")
     response = urllib.request.urlopen(request, data=body.encode("utf-8"))
