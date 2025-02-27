@@ -20,7 +20,7 @@ from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 
 plt.rc('font', family='NanumGothic') 
-urllib3.disable_warnings()
+urllib.disable_warnings()
 
 #전역변수
 # .env 파일 로드 (로컬 개발 시 사용, Render에서는 환경 변수 직접 설정)
