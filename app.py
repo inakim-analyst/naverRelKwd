@@ -20,6 +20,7 @@ from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 
 plt.rc('font', family='NanumGothic') 
+urllib3.disable_warnings()
 
 #전역변수
 # .env 파일 로드 (로컬 개발 시 사용, Render에서는 환경 변수 직접 설정)
@@ -210,7 +211,7 @@ def slack_search_trend():
 
     # Slack에 CSV 파일 업로드
     try:
-        response = slack_client.files_upload(
+        response = slack_client.files_upload_v2(
             channels=data["channel_id"],
             file=csv_filename,
             title="검색 트렌드 결과"
