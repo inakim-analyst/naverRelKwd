@@ -101,7 +101,7 @@ def gettrenddata(keyword1,keyword2,startDate,endDate):
 
     # request = urllib.request.Request(url)
     # request.add_header("X-Naver-Client-Id",CLIENT_ID)
-    # request.add_header("X-Naver-Client-Secret",client_secret)
+    # request.add_header("X-Naver-Client-Secret",CLIENT_SECRET)
     # request.add_header("Content-Type","application/json")
     # response = urllib.request.urlopen(request, data=body.encode("utf-8"))
     # rescode = response.getcode()
@@ -113,7 +113,7 @@ def gettrenddata(keyword1,keyword2,startDate,endDate):
 
     request = urllib.request.Request(url)
     request.add_header("X-Naver-Client-Id",CLIENT_ID)
-    request.add_header("X-Naver-Client-Secret",client_secret)
+    request.add_header("X-Naver-Client-Secret",CLIENT_SECRET)
     request.add_header("Content-Type","application/json")
     response = urllib.request.urlopen(request, data=body.encode("utf-8"))
     rescode = response.getcode()
