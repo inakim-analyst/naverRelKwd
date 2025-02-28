@@ -277,6 +277,13 @@ def slack_getrelkeyword():
             logger.error(f"❌ Slack 메시지 전송 실패: {e.response['error']}")
         return jsonify({"text": "연관 검색어 데이터를 가져오지 못했습니다."}), 200
 
+    # ✅ 데이터 변환 (monthlyMobileQcCnt를 숫자로 변환)
+    try:
+        relkeyword_data["monthlyMobileQcCnt"] = relkeyword_data["monthlyMobileQcCnt"].astype(int)
+    except Exception as e:
+        logger.error(f"❌ 데이터 타입 변환 실패: {str(e)}")
+        return jsonify({"text": "데이터 타입 변환 중 오류가 발생했습니다."}), 200
+
     # ✅ `monthlyMobileQcCnt` 기준으로 내림차순 정렬 & 상위 100개만 선택
     try:
         sorted_data = relkeyword_data.sort_values(by="monthlyMobileQcCnt", ascending=False).head(100)
@@ -296,7 +303,6 @@ def slack_getrelkeyword():
         logger.error(f"❌ Slack 메시지 전송 실패: {e.response['error']}")
 
     return response  # ✅ Slack이 200 응답을 정상적으로 받을 수 있도록 보장
-
 
 
 if __name__ == "__main__":
