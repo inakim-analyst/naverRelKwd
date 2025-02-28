@@ -279,6 +279,22 @@ def slack_getrelkeyword():
             logger.error(f"❌ Slack 메시지 전송 실패: {e.response['error']}")
         return jsonify({"text": "연관 검색어 데이터를 가져오지 못했습니다."}), 200
 
+    # ✅ `monthlyMobileQcCnt` 컬럼을 숫자로 변환
+    try:
+        # 문자열 변환 후 숫자만 남기기
+        relkeyword_data["monthlyMobileQcCnt"] = relkeyword_data["monthlyMobileQcCnt"].astype(str)
+        relkeyword_data["monthlyMobileQcCnt"] = relkeyword_data["monthlyMobileQcCnt"].apply(
+            lambda x: re.sub(r"[^\d]", "", x) if re.search(r"\d", x) else "0"
+        )
+
+        # NaN이 아닌 경우만 유지
+        relkeyword_data["monthlyMobileQcCnt"] = pd.to_numeric(relkeyword_data["monthlyMobileQcCnt"], errors='coerce')
+        relkeyword_data = relkeyword_data.dropna()
+
+    except Exception as e:
+        logger.error(f"❌ 데이터 타입 변환 실패: {str(e)}")
+        return jsonify({"text": "데이터 타입 변환 중 오류가 발생했습니다."}), 200
+
     # ✅ `monthlyMobileQcCnt` 기준으로 내림차순 정렬 & 상위 100개만 선택
     try:
         sorted_data = relkeyword_data.sort_values(by="monthlyMobileQcCnt", ascending=False).head(100)
