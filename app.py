@@ -230,5 +230,58 @@ def slack_search_trend():
         return response  #  Slack이 200 응답을 정상적으로 받을 수 있도록 보장
 
 
+@app.route("/slack/getrelkeyword", methods=["POST"])
+def slack_getrelkeyword():
+    logger.info("[LOG] Slack 요청 수신 (getrelkeyword)")
+
+    #  먼저 HTTP 200 응답을 반환하여 Slack이 오류 메시지를 띄우지 않도록 함
+    response_text = {"text": "🔍 연관 검색어 분석 중... 결과가 곧 도착합니다!"}
+    
+    #  Slack에 "작업 중" 메시지 전송 (선택)
+    try:
+        slack_client.chat_postMessage(
+            channel=request.form["channel_id"],
+            text="🔍 연관 검색어 분석을 시작합니다. 결과가 곧 도착합니다!"
+        )
+    except SlackApiError as e:
+        logger.error(f"❌ Slack 초기 메시지 전송 실패: {e.response['error']}")
+
+    #  먼저 200 OK를 반환하여 Slack 오류 메시지 방지
+    response = jsonify(response_text)
+    response.status_code = 200
+
+    #  Slack에서 받은 키워드 처리
+    command_text = request.form.get("text", "").split()
+    
+    if len(command_text) < 1:
+        logger.warning("[LOG] 잘못된 요청 형식")
+        return jsonify({"text": "올바른 형식: /getrelkeyword 키워드"}), 200
+
+    # 입력값 확인
+    keyword1 = command_text[0]
+    keyword2 = command_text[1] if len(command_text) > 1 else ""  # 두 번째 키워드 없으면 공백 처리
+    logger.info(f"[LOG] 키워드1: {keyword1}, 키워드2: {keyword2}")
+
+    #  연관 검색어 데이터 가져오기
+    relkeyword_data = getrelkeyword(keyword1, keyword2)
+
+    if relkeyword_data is None or relkeyword_data.empty:
+        logger.warning("[LOG] 연관 검색어 데이터를 가져오지 못함")
+        return jsonify({"text": "연관 검색어 데이터를 가져오지 못했습니다."}), 200
+
+    #  Slack으로 결과 전송
+    try:
+        slack_client.chat_postMessage(
+            channel=request.form["channel_id"]
+            text=relkeyword_data
+        )
+        logger.info("[LOG] Slack 메시지 전송 성공 (getrelkeyword)")
+    except SlackApiError as e:
+        logger.error(f"❌ Slack 메시지 전송 실패: {e.response['error']}")
+
+    return response  # ✅ Slack이 200 응답을 정상적으로 받을 수 있도록 보장
+
+
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)  #  debug=True 추가
