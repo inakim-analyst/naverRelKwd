@@ -7,18 +7,22 @@ from slack_sdk.errors import SlackApiError
 SLACK_BOT_TOKEN = os.getenv("SLACK_BOT_TOKEN")
 slack_client = WebClient(token=SLACK_BOT_TOKEN)
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 app = Flask(__name__)
 
 #  Slack에서 `/search_trend` 호출 시 응답 테스트
 @app.route("/slack/search_trend", methods=["POST"])
 def slack_search_trend():
-    print("[LOG] Slack 요청 수신")  #  로그 출력
+    logger.info("[LOG] Slack 요청 수신")  #  로그 출력 (Render에서 보이도록 변경)
 
     # Slack에서 받은 데이터
     data = request.form
     command_text = data.get("text", "").split()
 
     if len(command_text) < 4:
+        logger.warning("[LOG] 잘못된 요청 형식")
         return jsonify({"text": "올바른 형식: /search_trend kwd1 kwd2 days device"}), 200
 
     # 입력값 확인
@@ -31,11 +35,11 @@ def slack_search_trend():
             channel=data["channel_id"],
             text=response_text
         )
-        print("[LOG] Slack 메시지 전송 성공:", response_text)
+        logger.info(f"[LOG] Slack 메시지 전송 성공: {response_text}")
     except SlackApiError as e:
-        print(f"❌ Slack 메시지 전송 실패: {e.response['error']}")
+        logger.error(f"❌ Slack 메시지 전송 실패: {e.response['error']}")
 
     return jsonify({"text": response_text}), 200
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    app.run(host="0.0.0.0", port=5000, debug=True)  #  debug=True 추가
