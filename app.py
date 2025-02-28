@@ -272,7 +272,7 @@ def slack_getrelkeyword():
     #  Slack으로 결과 전송
     try:
         slack_client.chat_postMessage(
-            channel=request.form["channel_id"]
+            channel=request.form["channel_id"],
             text=relkeyword_data
         )
         logger.info("[LOG] Slack 메시지 전송 성공 (getrelkeyword)")
