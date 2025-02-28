@@ -279,44 +279,30 @@ def slack_getrelkeyword():
             logger.error(f"❌ Slack 메시지 전송 실패: {e.response['error']}")
         return jsonify({"text": "연관 검색어 데이터를 가져오지 못했습니다."}), 200
 
-    # ✅ '< 10' 같은 문자열을 숫자로 변환
-    try:
-        relkeyword_data["monthlyMobileQcCnt"] = relkeyword_data["monthlyMobileQcCnt"].astype(str)
-
-        # '< 10' 같은 표현을 10으로 변환
-        relkeyword_data["monthlyMobileQcCnt"] = relkeyword_data["monthlyMobileQcCnt"].apply(
-            lambda x: re.sub(r"[^\d]", "", x) if re.search(r"\d", x) else "0"
-        )
-
-        # 숫자로 변환 (오류 발생 시 NaN으로 처리)
-        relkeyword_data["monthlyMobileQcCnt"] = pd.to_numeric(relkeyword_data["monthlyMobileQcCnt"], errors='coerce')
-
-        # NaN 값 제거
-        relkeyword_data = relkeyword_data.dropna()
-    except Exception as e:
-        logger.error(f"❌ 데이터 타입 변환 실패: {str(e)}")
-        return jsonify({"text": "데이터 타입 변환 중 오류가 발생했습니다."}), 200
-
     # ✅ `monthlyMobileQcCnt` 기준으로 내림차순 정렬 & 상위 100개만 선택
     try:
         sorted_data = relkeyword_data.sort_values(by="monthlyMobileQcCnt", ascending=False).head(100)
-        result_json = sorted_data.to_json(orient="records", force_ascii=False)
+        
+        # ✅ relKeyword 컬럼만 추출하여 리스트로 변환
+        keyword_list = sorted_data["relKeyword"].tolist()
+        
+        # ✅ 쉼표로 연결된 문자열 생성
+        keyword_text = ", ".join(keyword_list)
     except Exception as e:
-        logger.error(f"❌ 데이터 정렬 또는 JSON 변환 실패: {str(e)}")
+        logger.error(f"❌ 데이터 정렬 또는 변환 실패: {str(e)}")
         return jsonify({"text": "데이터 변환 중 오류가 발생했습니다."}), 200
 
-    # ✅ Slack으로 결과 전송
+    # ✅ Slack으로 결과 전송 (``` 텍스트 박스 안에서 노출)
     try:
         slack_client.chat_postMessage(
             channel=request.form["channel_id"],
-            text=f"🔍 연관 검색어 (상위 100개, 모바일 검색량 기준):\n```{result_json}```"
+            text=f"🔍 연관 검색어 (상위 100개, 모바일 검색량 기준):\n```\n{keyword_text}\n```"
         )
         logger.info("[LOG] Slack 메시지 전송 성공 (getrelkeyword)")
     except SlackApiError as e:
         logger.error(f"❌ Slack 메시지 전송 실패: {e.response['error']}")
 
     return response  # ✅ Slack이 200 응답을 정상적으로 받을 수 있도록 보장
-
 
 
 if __name__ == "__main__":
