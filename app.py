@@ -20,7 +20,7 @@ from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 
 plt.rc('font', family='NanumGothic') 
-urllib.disable_warnings()
+# urllib.disable_warnings()
 
 #전역변수
 # .env 파일 로드 (로컬 개발 시 사용, Render에서는 환경 변수 직접 설정)
@@ -147,8 +147,8 @@ def calculate_search_trend(keyword1, keyword2, days_ago=30, device="mo"):
     """
     today_date = datetime.today()
 
-    # 검색 기간 설정 (30일 전 ~ 1일 전)
-    startDate = (today_date - timedelta(days=365)).strftime('%Y-%m-%d')
+    # 검색 기간 설정 (days_ago일 전 ~ 1일 전)
+    startDate = (today_date - timedelta(days=days_ago)).strftime('%Y-%m-%d')
     endDate = (today_date - timedelta(days=1)).strftime('%Y-%m-%d')
 
     # 데이터 가져오기
