@@ -230,6 +230,8 @@ def slack_search_trend():
         return response  #  Slack이 200 응답을 정상적으로 받을 수 있도록 보장
 
 
+import re
+
 @app.route("/slack/getrelkeyword", methods=["POST"])
 def slack_getrelkeyword():
     logger.info("[LOG] Slack 요청 수신 (getrelkeyword)")
@@ -277,9 +279,20 @@ def slack_getrelkeyword():
             logger.error(f"❌ Slack 메시지 전송 실패: {e.response['error']}")
         return jsonify({"text": "연관 검색어 데이터를 가져오지 못했습니다."}), 200
 
-    # ✅ 데이터 변환 (monthlyMobileQcCnt를 숫자로 변환)
+    # ✅ '< 10' 같은 문자열을 숫자로 변환
     try:
-        relkeyword_data["monthlyMobileQcCnt"] = relkeyword_data["monthlyMobileQcCnt"].astype(int)
+        relkeyword_data["monthlyMobileQcCnt"] = relkeyword_data["monthlyMobileQcCnt"].astype(str)
+
+        # '< 10' 같은 표현을 10으로 변환
+        relkeyword_data["monthlyMobileQcCnt"] = relkeyword_data["monthlyMobileQcCnt"].apply(
+            lambda x: re.sub(r"[^\d]", "", x) if re.search(r"\d", x) else "0"
+        )
+
+        # 숫자로 변환 (오류 발생 시 NaN으로 처리)
+        relkeyword_data["monthlyMobileQcCnt"] = pd.to_numeric(relkeyword_data["monthlyMobileQcCnt"], errors='coerce')
+
+        # NaN 값 제거
+        relkeyword_data = relkeyword_data.dropna()
     except Exception as e:
         logger.error(f"❌ 데이터 타입 변환 실패: {str(e)}")
         return jsonify({"text": "데이터 타입 변환 중 오류가 발생했습니다."}), 200
@@ -303,6 +316,7 @@ def slack_getrelkeyword():
         logger.error(f"❌ Slack 메시지 전송 실패: {e.response['error']}")
 
     return response  # ✅ Slack이 200 응답을 정상적으로 받을 수 있도록 보장
+
 
 
 if __name__ == "__main__":
