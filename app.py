@@ -191,34 +191,61 @@ def calculate_search_trend(keyword1, keyword2, days_ago=30, device="mo"):
 
 
 # Slack에서 호출하는 API 엔드포인트
+# @app.route("/slack/search_trend", methods=["POST"])
+# def slack_search_trend():
+#     data = request.form
+#     command_text = data.get("text", "").split()
+    
+#     if len(command_text) < 4:
+#         return jsonify({"text": "올바른 형식: /search_trend keyword1 keyword2 days device"}), 200
+
+#     keyword1, keyword2, days, device = command_text[0], command_text[1], int(command_text[2]), command_text[3]
+
+#     result_df = calculate_search_trend(keyword1, keyword2, days_ago=days, device=device)
+#     if result_df is None:
+#         return jsonify({"text": "데이터를 가져오지 못했습니다."}), 200
+
+#     # CSV 저장
+#     csv_filename = "search_trend.csv"
+#     result_df.to_csv(csv_filename, index=False)
+
+#     # Slack에 CSV 파일 업로드
+#     try:
+#         response = slack_client.files_upload_v2(
+#             channels=data["channel_id"],
+#             file=csv_filename,
+#             title="검색 트렌드 결과"
+#         )
+#         return jsonify({"text": "CSV 파일을 업로드했습니다."}), 200
+#     except SlackApiError as e:
+#         return jsonify({"text": f"Slack 파일 업로드 실패: {e.response['error']}"}), 200
 @app.route("/slack/search_trend", methods=["POST"])
 def slack_search_trend():
+    print("[LOG] Slack 요청 받음")  # Slack 요청을 받았는지 확인
+    print("Request Form:", request.form)
+
     data = request.form
     command_text = data.get("text", "").split()
-    
+
     if len(command_text) < 4:
+        print("[LOG] 잘못된 요청 형식")
         return jsonify({"text": "올바른 형식: /search_trend keyword1 keyword2 days device"}), 200
 
     keyword1, keyword2, days, device = command_text[0], command_text[1], int(command_text[2]), command_text[3]
 
+    print(f"[LOG] 키워드1: {keyword1}, 키워드2: {keyword2}, 기간: {days}, 디바이스: {device}")
+
     result_df = calculate_search_trend(keyword1, keyword2, days_ago=days, device=device)
+
     if result_df is None:
+        print("[LOG] 데이터 없음")
         return jsonify({"text": "데이터를 가져오지 못했습니다."}), 200
 
-    # CSV 저장
-    csv_filename = "search_trend.csv"
-    result_df.to_csv(csv_filename, index=False)
+    result_json = result_df.to_json(orient="records", force_ascii=False)
 
-    # Slack에 CSV 파일 업로드
-    try:
-        response = slack_client.files_upload_v2(
-            channels=data["channel_id"],
-            file=csv_filename,
-            title="검색 트렌드 결과"
-        )
-        return jsonify({"text": "CSV 파일을 업로드했습니다."}), 200
-    except SlackApiError as e:
-        return jsonify({"text": f"Slack 파일 업로드 실패: {e.response['error']}"}), 200
+    print("[LOG] 검색 트렌드 결과 전송 완료")
+
+    return jsonify({"text": f"🔍 검색 트렌드 결과:\n```{result_json}```"}), 200
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
