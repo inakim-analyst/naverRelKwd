@@ -135,60 +135,92 @@ def gettrenddata(keyword1,keyword2,startDate,endDate):
 
     return response_results
 
-def calculate_search_trend(keyword1, keyword2, days_ago=30, device="mo"):
-    """
-    주어진 키워드들에 대한 네이버 데이터랩 검색 트렌드 및 검색량을 계산하는 함수.
+# def calculate_search_trend(keyword1, keyword2, days_ago=30, device="mo"):
+#     """
+#     주어진 키워드들에 대한 네이버 데이터랩 검색 트렌드 및 검색량을 계산하는 함수.
 
-    :param keyword1: 첫 번째 키워드 (str)
-    :param keyword2: 두 번째 키워드 (str)
-    :param device: 검색 대상 (str) - "pc" 또는 "mo" (기본값: "mo")
-    :param days_ago: 데이터를 보기 시작할 날짜. (int) (기본값:30)
-    :return: 계산된 검색 트렌드 데이터 (DataFrame)
-    """
+#     :param keyword1: 첫 번째 키워드 (str)
+#     :param keyword2: 두 번째 키워드 (str)
+#     :param device: 검색 대상 (str) - "pc" 또는 "mo" (기본값: "mo")
+#     :param days_ago: 데이터를 보기 시작할 날짜. (int) (기본값:30)
+#     :return: 계산된 검색 트렌드 데이터 (DataFrame)
+#     """
+#     today_date = datetime.today()
+
+#     # 검색 기간 설정 (days_ago일 전 ~ 1일 전)
+#     startDate = (today_date - timedelta(days=days_ago)).strftime('%Y-%m-%d')
+#     endDate = (today_date - timedelta(days=1)).strftime('%Y-%m-%d')
+
+#     # 데이터 가져오기
+#     trend = gettrenddata(keyword1, keyword2, startDate, endDate)
+#     relkeyword = getrelkeyword(keyword1, keyword2)
+
+#     if trend is None or relkeyword is None:
+#         print("데이터를 가져오지 못했습니다.")
+#         return None
+
+#     # 키워드별 최신 퍼센트 정보 저장
+#     keyword1_percent = trend.loc[trend['title'] == keyword1, 'ratio'].iloc[-1]
+#     keyword2_percent = trend.loc[trend['title'] == keyword2, 'ratio'].iloc[-1]
+
+#     # 디바이스별 컬럼 선택 (PC: 1, Mobile: 2)
+#     colnum = 1 if device == 'pc' else 2
+
+#     # 키워드별 검색수 저장 (PC/Mobile)
+#     keyword1_count = relkeyword.loc[relkeyword['relKeyword'] == keyword1].iloc[0, colnum]
+#     keyword2_count = relkeyword.loc[relkeyword['relKeyword'] == keyword2].iloc[0, colnum]
+
+#     # 검색수 / 1% 비율 계산
+#     keyword1_1percent = keyword1_count / keyword1_percent
+#     keyword2_1percent = keyword2_count / keyword2_percent
+
+#     # 최종 트렌드 데이터에 검색수 계산 추가
+#     trend_fin = trend.copy()
+#     trend_fin.loc[trend_fin['title'] == keyword1, (device + '검색수')] = \
+#         keyword1_1percent * trend_fin.loc[trend_fin['title'] == keyword1, 'ratio']
+#     trend_fin.loc[trend_fin['title'] == keyword2, (device + '검색수')] = \
+#         keyword2_1percent * trend_fin.loc[trend_fin['title'] == keyword2, 'ratio']
+
+#     # 검색수 데이터 정수형 변환
+#     trend_fin = trend_fin.astype({(device + '검색수'): 'int64'})
+    
+#     # 컬럼명 변경 (period → month, title → keyword)
+#     trend_fin = trend_fin.rename(columns={"period": "month", "title": "keyword"})
+
+#     return trend_fin
+def calculate_search_trend(keyword1, keyword2, days_ago=365, device="mo"):
     today_date = datetime.today()
-
-    # 검색 기간 설정 (days_ago일 전 ~ 1일 전)
     startDate = (today_date - timedelta(days=days_ago)).strftime('%Y-%m-%d')
     endDate = (today_date - timedelta(days=1)).strftime('%Y-%m-%d')
 
-    # 데이터 가져오기
     trend = gettrenddata(keyword1, keyword2, startDate, endDate)
     relkeyword = getrelkeyword(keyword1, keyword2)
 
     if trend is None or relkeyword is None:
-        print("데이터를 가져오지 못했습니다.")
+        print("❌ Error: 트렌드 데이터 또는 연관 키워드를 가져오지 못했습니다.")
         return None
 
-    # 키워드별 최신 퍼센트 정보 저장
+    # ✅ "ratio" 컬럼이 있는지 확인 후 예외 처리
+    if "ratio" not in trend.columns:
+        print("❌ Error: 'ratio' column not found in trend data.")
+        print("Returned columns:", trend.columns)
+        return None
+
     keyword1_percent = trend.loc[trend['title'] == keyword1, 'ratio'].iloc[-1]
     keyword2_percent = trend.loc[trend['title'] == keyword2, 'ratio'].iloc[-1]
-
-    # 디바이스별 컬럼 선택 (PC: 1, Mobile: 2)
     colnum = 1 if device == 'pc' else 2
-
-    # 키워드별 검색수 저장 (PC/Mobile)
     keyword1_count = relkeyword.loc[relkeyword['relKeyword'] == keyword1].iloc[0, colnum]
     keyword2_count = relkeyword.loc[relkeyword['relKeyword'] == keyword2].iloc[0, colnum]
 
-    # 검색수 / 1% 비율 계산
     keyword1_1percent = keyword1_count / keyword1_percent
     keyword2_1percent = keyword2_count / keyword2_percent
 
-    # 최종 트렌드 데이터에 검색수 계산 추가
     trend_fin = trend.copy()
-    trend_fin.loc[trend_fin['title'] == keyword1, (device + '검색수')] = \
-        keyword1_1percent * trend_fin.loc[trend_fin['title'] == keyword1, 'ratio']
-    trend_fin.loc[trend_fin['title'] == keyword2, (device + '검색수')] = \
-        keyword2_1percent * trend_fin.loc[trend_fin['title'] == keyword2, 'ratio']
-
-    # 검색수 데이터 정수형 변환
-    trend_fin = trend_fin.astype({(device + '검색수'): 'int64'})
+    trend_fin.loc[trend_fin['title'] == keyword1, (device + '검색수')] = keyword1_1percent * trend_fin.loc[trend_fin['title'] == keyword1, 'ratio']
+    trend_fin.loc[trend_fin['title'] == keyword2, (device + '검색수')] = keyword2_1percent * trend_fin.loc[trend_fin['title'] == keyword2, 'ratio']
     
-    # 컬럼명 변경 (period → month, title → keyword)
-    trend_fin = trend_fin.rename(columns={"period": "month", "title": "keyword"})
-
-    return trend_fin
-
+    trend_fin = trend_fin.astype({(device + '검색수'): 'int64'})
+    return trend_fin.rename(columns={"period": "month", "title": "keyword"})
 
 # Slack에서 호출하는 API 엔드포인트
 # @app.route("/slack/search_trend", methods=["POST"])
