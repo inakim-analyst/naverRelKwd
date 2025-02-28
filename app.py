@@ -252,8 +252,9 @@ def calculate_search_trend(keyword1, keyword2, days_ago=365, device="mo"):
 #     except SlackApiError as e:
 #         return jsonify({"text": f"Slack 파일 업로드 실패: {e.response['error']}"}), 200
 @app.route("/slack/search_trend", methods=["POST"])
+@app.route("/slack/search_trend", methods=["POST"])
 def slack_search_trend():
-    print("[LOG] Slack 요청 받음")  # Slack 요청을 받았는지 확인
+    print("[LOG] Slack 요청 받음")  # ✅ Slack 요청을 받았는지 확인
     print("Request Form:", request.form)
 
     data = request.form
@@ -275,9 +276,24 @@ def slack_search_trend():
 
     result_json = result_df.to_json(orient="records", force_ascii=False)
 
-    print("[LOG] 검색 트렌드 결과 전송 완료")
+    # ✅ 응답 데이터 확인
+    print("[LOG] 검색 트렌드 결과 JSON:")
+    print(result_json)
 
-    return jsonify({"text": f"🔍 검색 트렌드 결과:\n```{result_json}```"}), 200
+    # ✅ Slack으로 결과 메시지 전송
+    slack_message = f"🔍 검색 트렌드 결과:\n```{result_json}```"
+
+    try:
+        response = slack_client.chat_postMessage(
+            channel=data["channel_id"],
+            text=slack_message
+        )
+        print("[LOG] Slack 메시지 전송 성공")
+    except SlackApiError as e:
+        print(f"❌ Slack 메시지 전송 실패: {e.response['error']}")
+
+    return jsonify({"text": "검색 트렌드 결과를 Slack으로 전송했습니다."}), 200
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
