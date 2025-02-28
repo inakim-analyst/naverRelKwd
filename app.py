@@ -221,11 +221,13 @@ def slack_search_trend():
                 text=f"🔍 검색 트렌드 결과:\n```{result_json}```"
             )
             logger.info("[LOG] Slack 메시지 전송 성공")
-            return jsonify({"text": "검색 트렌드 결과를 Slack으로 전송했습니다."}), 200
+            # return jsonify({"text": "검색 트렌드 결과를 Slack으로 전송했습니다."}), 200
+            
         except SlackApiError as e:
             logger.info(f"❌ Slack 메시지 전송 실패: {e.response['error']}")
-            return jsonify({"text": "Slack 메시지 전송에 실패했습니다."}), 200
-
+            # return jsonify({"text": "Slack 메시지 전송에 실패했습니다."}), 200
+    
+        return response  #  Slack이 200 응답을 정상적으로 받을 수 있도록 보장
 
 
 if __name__ == "__main__":
