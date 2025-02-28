@@ -139,19 +139,6 @@ def gettrenddata(keyword1,keyword2,startDate,endDate):
 
     return response_results
 
-# 표 형식으로 작업
-def format_trend_table(data):
-    df = pd.DataFrame(data)
-    table_str = "🔍 검색 트렌드 결과:\n```\n"
-    table_str += f"{'월':<10}{'키워드':<15}{'비율(%)':<10}{'검색수':<10}\n"
-    table_str += "-" * 45 + "\n"
-
-    for _, row in df.iterrows():
-        table_str += f"{row['month']:<10}{row['keyword']:<15}{row['ratio']:<10.2f}{row['mo검색수']:<10}\n"
-
-    table_str += "```"
-    return table_str
-
 
 def calculate_search_trend(keyword1, keyword2, days_ago=365, device="mo"):
     today_date = datetime.today()
@@ -207,7 +194,7 @@ def slack_search_trend():
         return jsonify({"text": "데이터를 가져오지 못했습니다."}), 200
 
     result_json = result_df.to_json(orient="records", force_ascii=False)
-    formatted_message = format_trend_table(result_json)
+    # formatted_message = format_trend_table(result_json)
 
     # ✅ 메시지 길이 체크 후, 4000자 이상이면 파일로 업로드
     if len(result_json) > 4000:
@@ -231,7 +218,7 @@ def slack_search_trend():
         try:
             response = slack_client.chat_postMessage(
                 channel=data["channel_id"],
-                text=f"🔍 검색 트렌드 결과:\n```{formatted_message}```"
+                text=f"🔍 검색 트렌드 결과:\n```{result_json}```"
             )
             logger.info("[LOG] Slack 메시지 전송 성공")
             return jsonify({"text": "검색 트렌드 결과를 Slack으로 전송했습니다."}), 200
