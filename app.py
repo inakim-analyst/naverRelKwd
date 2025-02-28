@@ -252,47 +252,51 @@ def calculate_search_trend(keyword1, keyword2, days_ago=365, device="mo"):
 #     except SlackApiError as e:
 #         return jsonify({"text": f"Slack 파일 업로드 실패: {e.response['error']}"}), 200
 @app.route("/slack/search_trend", methods=["POST"])
-@app.route("/slack/search_trend", methods=["POST"])
 def slack_search_trend():
-    print("[LOG] Slack 요청 받음")  # ✅ Slack 요청을 받았는지 확인
-    print("Request Form:", request.form)
-
     data = request.form
     command_text = data.get("text", "").split()
 
     if len(command_text) < 4:
-        print("[LOG] 잘못된 요청 형식")
         return jsonify({"text": "올바른 형식: /search_trend keyword1 keyword2 days device"}), 200
 
     keyword1, keyword2, days, device = command_text[0], command_text[1], int(command_text[2]), command_text[3]
-
-    print(f"[LOG] 키워드1: {keyword1}, 키워드2: {keyword2}, 기간: {days}, 디바이스: {device}")
-
     result_df = calculate_search_trend(keyword1, keyword2, days_ago=days, device=device)
 
     if result_df is None:
-        print("[LOG] 데이터 없음")
         return jsonify({"text": "데이터를 가져오지 못했습니다."}), 200
 
     result_json = result_df.to_json(orient="records", force_ascii=False)
 
-    # ✅ 응답 데이터 확인
-    print("[LOG] 검색 트렌드 결과 JSON:")
-    print(result_json)
+    # ✅ 메시지 길이 체크 후, 4000자 이상이면 파일로 업로드
+    if len(result_json) > 4000:
+        print("[LOG] 메시지가 너무 길어 파일로 업로드")
+        filename = "search_trend_result.json"
+        with open(filename, "w", encoding="utf-8") as f:
+            f.write(result_json)
 
-    # ✅ Slack으로 결과 메시지 전송
-    slack_message = f"🔍 검색 트렌드 결과:\n```{result_json}```"
+        try:
+            response = slack_client.files_upload(
+                channels=data["channel_id"],
+                file=filename,
+                title="검색 트렌드 결과"
+            )
+            print("[LOG] Slack 파일 업로드 성공")
+            return jsonify({"text": "검색 트렌드 결과를 Slack 파일로 업로드했습니다."}), 200
+        except SlackApiError as e:
+            print(f"❌ Slack 파일 업로드 실패: {e.response['error']}")
+            return jsonify({"text": "Slack 파일 업로드에 실패했습니다."}), 200
+    else:
+        try:
+            response = slack_client.chat_postMessage(
+                channel=data["channel_id"],
+                text=f"🔍 검색 트렌드 결과:\n```{result_json}```"
+            )
+            print("[LOG] Slack 메시지 전송 성공")
+            return jsonify({"text": "검색 트렌드 결과를 Slack으로 전송했습니다."}), 200
+        except SlackApiError as e:
+            print(f"❌ Slack 메시지 전송 실패: {e.response['error']}")
+            return jsonify({"text": "Slack 메시지 전송에 실패했습니다."}), 200
 
-    try:
-        response = slack_client.chat_postMessage(
-            channel=data["channel_id"],
-            text=slack_message
-        )
-        print("[LOG] Slack 메시지 전송 성공")
-    except SlackApiError as e:
-        print(f"❌ Slack 메시지 전송 실패: {e.response['error']}")
-
-    return jsonify({"text": "검색 트렌드 결과를 Slack으로 전송했습니다."}), 200
 
 
 if __name__ == "__main__":
