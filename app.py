@@ -234,10 +234,10 @@ def slack_search_trend():
 def slack_getrelkeyword():
     logger.info("[LOG] Slack 요청 수신 (getrelkeyword)")
 
-    # ✅ 먼저 HTTP 200 응답을 반환하여 Slack이 오류 메시지를 띄우지 않도록 함
+    #  먼저 HTTP 200 응답을 반환하여 Slack이 오류 메시지를 띄우지 않도록 함
     response_text = {"text": "🔍 연관 검색어 분석 중... 결과가 곧 도착합니다!"}
 
-    # ✅ Slack에 "작업 중" 메시지 전송 (선택)
+    #  Slack에 "작업 중" 메시지 전송 (선택)
     try:
         slack_client.chat_postMessage(
             channel=request.form["channel_id"],
@@ -246,11 +246,11 @@ def slack_getrelkeyword():
     except SlackApiError as e:
         logger.error(f"❌ Slack 초기 메시지 전송 실패: {e.response['error']}")
 
-    # ✅ 먼저 200 OK를 반환하여 Slack 오류 메시지 방지
+    #  먼저 200 OK를 반환하여 Slack 오류 메시지 방지
     response = jsonify(response_text)
     response.status_code = 200
 
-    # ✅ Slack에서 받은 키워드 처리
+    #  Slack에서 받은 키워드 처리
     command_text = request.form.get("text", "").split()
 
     if len(command_text) < 1:
@@ -262,33 +262,39 @@ def slack_getrelkeyword():
     keyword2 = command_text[1] if len(command_text) > 1 else ""  # 두 번째 키워드 없으면 공백 처리
     logger.info(f"[LOG] 키워드1: {keyword1}, 키워드2: {keyword2}")
 
-    # ✅ 연관 검색어 데이터 가져오기
+    #  연관 검색어 데이터 가져오기
     relkeyword_data = getrelkeyword(keyword1, keyword2)
 
-    # ✅ `None` 또는 빈 데이터프레임 예외 처리
+    # `None` 또는 빈 데이터프레임 예외 처리
     if relkeyword_data is None or relkeyword_data.empty:
         logger.warning("[LOG] 연관 검색어 데이터를 가져오지 못함")
         try:
             slack_client.chat_postMessage(
                 channel=request.form["channel_id"],
-                text="❌ 연관 검색어 데이터를 찾을 수 없습니다."
+                text=f"❌ '{keyword1}'에 대한 연관 검색어 데이터를 찾을 수 없습니다."
             )
         except SlackApiError as e:
             logger.error(f"❌ Slack 메시지 전송 실패: {e.response['error']}")
         return jsonify({"text": "연관 검색어 데이터를 가져오지 못했습니다."}), 200
 
+    #  JSON 데이터 직접 변환하여 Slack 전송
+    try:
+        result_json = relkeyword_data.to_json(orient="records", force_ascii=False)
+    except Exception as e:
+        logger.error(f"❌ JSON 변환 실패: {str(e)}")
+        return jsonify({"text": "JSON 변환 중 오류가 발생했습니다."}), 200
 
-    # ✅ Slack으로 결과 전송
+    #  Slack으로 결과 전송
     try:
         slack_client.chat_postMessage(
             channel=request.form["channel_id"],
-            text=relkeyword_data
+            text=f"🔍 연관 검색어 결과:\n```{result_json}```"
         )
         logger.info("[LOG] Slack 메시지 전송 성공 (getrelkeyword)")
     except SlackApiError as e:
         logger.error(f"❌ Slack 메시지 전송 실패: {e.response['error']}")
 
-    return response  # ✅ Slack이 200 응답을 정상적으로 받을 수 있도록 보장
+    return response  #  Slack이 200 응답을 정상적으로 받을 수 있도록 보장
 
 
 
