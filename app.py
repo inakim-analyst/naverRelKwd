@@ -139,59 +139,20 @@ def gettrenddata(keyword1,keyword2,startDate,endDate):
 
     return response_results
 
-# def calculate_search_trend(keyword1, keyword2, days_ago=30, device="mo"):
-#     """
-#     주어진 키워드들에 대한 네이버 데이터랩 검색 트렌드 및 검색량을 계산하는 함수.
+# 표 형식으로 작업
+def format_trend_table(data):
+    df = pd.DataFrame(data)
+    table_str = "🔍 검색 트렌드 결과:\n```\n"
+    table_str += f"{'월':<10}{'키워드':<15}{'비율(%)':<10}{'검색수':<10}\n"
+    table_str += "-" * 45 + "\n"
 
-#     :param keyword1: 첫 번째 키워드 (str)
-#     :param keyword2: 두 번째 키워드 (str)
-#     :param device: 검색 대상 (str) - "pc" 또는 "mo" (기본값: "mo")
-#     :param days_ago: 데이터를 보기 시작할 날짜. (int) (기본값:30)
-#     :return: 계산된 검색 트렌드 데이터 (DataFrame)
-#     """
-#     today_date = datetime.today()
+    for _, row in df.iterrows():
+        table_str += f"{row['month']:<10}{row['keyword']:<15}{row['ratio']:<10.2f}{row['mo검색수']:<10}\n"
 
-#     # 검색 기간 설정 (days_ago일 전 ~ 1일 전)
-#     startDate = (today_date - timedelta(days=days_ago)).strftime('%Y-%m-%d')
-#     endDate = (today_date - timedelta(days=1)).strftime('%Y-%m-%d')
+    table_str += "```"
+    return table_str
 
-#     # 데이터 가져오기
-#     trend = gettrenddata(keyword1, keyword2, startDate, endDate)
-#     relkeyword = getrelkeyword(keyword1, keyword2)
 
-#     if trend is None or relkeyword is None:
-#         print("데이터를 가져오지 못했습니다.")
-#         return None
-
-#     # 키워드별 최신 퍼센트 정보 저장
-#     keyword1_percent = trend.loc[trend['title'] == keyword1, 'ratio'].iloc[-1]
-#     keyword2_percent = trend.loc[trend['title'] == keyword2, 'ratio'].iloc[-1]
-
-#     # 디바이스별 컬럼 선택 (PC: 1, Mobile: 2)
-#     colnum = 1 if device == 'pc' else 2
-
-#     # 키워드별 검색수 저장 (PC/Mobile)
-#     keyword1_count = relkeyword.loc[relkeyword['relKeyword'] == keyword1].iloc[0, colnum]
-#     keyword2_count = relkeyword.loc[relkeyword['relKeyword'] == keyword2].iloc[0, colnum]
-
-#     # 검색수 / 1% 비율 계산
-#     keyword1_1percent = keyword1_count / keyword1_percent
-#     keyword2_1percent = keyword2_count / keyword2_percent
-
-#     # 최종 트렌드 데이터에 검색수 계산 추가
-#     trend_fin = trend.copy()
-#     trend_fin.loc[trend_fin['title'] == keyword1, (device + '검색수')] = \
-#         keyword1_1percent * trend_fin.loc[trend_fin['title'] == keyword1, 'ratio']
-#     trend_fin.loc[trend_fin['title'] == keyword2, (device + '검색수')] = \
-#         keyword2_1percent * trend_fin.loc[trend_fin['title'] == keyword2, 'ratio']
-
-#     # 검색수 데이터 정수형 변환
-#     trend_fin = trend_fin.astype({(device + '검색수'): 'int64'})
-    
-#     # 컬럼명 변경 (period → month, title → keyword)
-#     trend_fin = trend_fin.rename(columns={"period": "month", "title": "keyword"})
-
-#     return trend_fin
 def calculate_search_trend(keyword1, keyword2, days_ago=365, device="mo"):
     today_date = datetime.today()
     startDate = (today_date - timedelta(days=days_ago)).strftime('%Y-%m-%d')
@@ -224,37 +185,10 @@ def calculate_search_trend(keyword1, keyword2, days_ago=365, device="mo"):
     trend_fin.loc[trend_fin['title'] == keyword2, (device + '검색수')] = keyword2_1percent * trend_fin.loc[trend_fin['title'] == keyword2, 'ratio']
     
     trend_fin = trend_fin.astype({(device + '검색수'): 'int64'})
+       
     return trend_fin.rename(columns={"period": "month", "title": "keyword"})
 
-# Slack에서 호출하는 API 엔드포인트
-# @app.route("/slack/search_trend", methods=["POST"])
-# def slack_search_trend():
-#     data = request.form
-#     command_text = data.get("text", "").split()
-    
-#     if len(command_text) < 4:
-#         return jsonify({"text": "올바른 형식: /search_trend keyword1 keyword2 days device"}), 200
 
-#     keyword1, keyword2, days, device = command_text[0], command_text[1], int(command_text[2]), command_text[3]
-
-#     result_df = calculate_search_trend(keyword1, keyword2, days_ago=days, device=device)
-#     if result_df is None:
-#         return jsonify({"text": "데이터를 가져오지 못했습니다."}), 200
-
-#     # CSV 저장
-#     csv_filename = "search_trend.csv"
-#     result_df.to_csv(csv_filename, index=False)
-
-#     # Slack에 CSV 파일 업로드
-#     try:
-#         response = slack_client.files_upload_v2(
-#             channels=data["channel_id"],
-#             file=csv_filename,
-#             title="검색 트렌드 결과"
-#         )
-#         return jsonify({"text": "CSV 파일을 업로드했습니다."}), 200
-#     except SlackApiError as e:
-#         return jsonify({"text": f"Slack 파일 업로드 실패: {e.response['error']}"}), 200
 @app.route("/slack/search_trend", methods=["POST"])
 def slack_search_trend():
     logger.info("[LOG] Slack 요청 수신")  #  로그 출력 (Render에서 보이도록 변경)
@@ -273,6 +207,7 @@ def slack_search_trend():
         return jsonify({"text": "데이터를 가져오지 못했습니다."}), 200
 
     result_json = result_df.to_json(orient="records", force_ascii=False)
+    formatted_message = format_trend_table(result_json)
 
     # ✅ 메시지 길이 체크 후, 4000자 이상이면 파일로 업로드
     if len(result_json) > 4000:
@@ -296,7 +231,7 @@ def slack_search_trend():
         try:
             response = slack_client.chat_postMessage(
                 channel=data["channel_id"],
-                text=f"🔍 검색 트렌드 결과:\n```{result_json}```"
+                text=f"🔍 검색 트렌드 결과:\n```{formatted_message}```"
             )
             logger.info("[LOG] Slack 메시지 전송 성공")
             return jsonify({"text": "검색 트렌드 결과를 Slack으로 전송했습니다."}), 200
