@@ -1,6 +1,7 @@
 #연관검색어의 월별검색수 확인
 import os
 import sys
+import logging
 import urllib.request
 import json
 import pandas as pd
@@ -21,6 +22,9 @@ from slack_sdk.errors import SlackApiError
 
 plt.rc('font', family='NanumGothic') 
 # urllib.disable_warnings()
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 #전역변수
 # .env 파일 로드 (로컬 개발 시 사용, Render에서는 환경 변수 직접 설정)
@@ -253,6 +257,9 @@ def calculate_search_trend(keyword1, keyword2, days_ago=365, device="mo"):
 #         return jsonify({"text": f"Slack 파일 업로드 실패: {e.response['error']}"}), 200
 @app.route("/slack/search_trend", methods=["POST"])
 def slack_search_trend():
+    logger.info("[LOG] Slack 요청 수신")  #  로그 출력 (Render에서 보이도록 변경)
+    
+    #슬랙에서 받아온 데이터
     data = request.form
     command_text = data.get("text", "").split()
 
@@ -269,7 +276,7 @@ def slack_search_trend():
 
     # ✅ 메시지 길이 체크 후, 4000자 이상이면 파일로 업로드
     if len(result_json) > 4000:
-        print("[LOG] 메시지가 너무 길어 파일로 업로드")
+        logger.info("[LOG] 메시지가 너무 길어 파일로 업로드")
         filename = "search_trend_result.json"
         with open(filename, "w", encoding="utf-8") as f:
             f.write(result_json)
@@ -280,10 +287,10 @@ def slack_search_trend():
                 file=filename,
                 title="검색 트렌드 결과"
             )
-            print("[LOG] Slack 파일 업로드 성공")
+            logger.info("[LOG] Slack 파일 업로드 성공")
             return jsonify({"text": "검색 트렌드 결과를 Slack 파일로 업로드했습니다."}), 200
         except SlackApiError as e:
-            print(f"❌ Slack 파일 업로드 실패: {e.response['error']}")
+            logger.info(f"❌ Slack 파일 업로드 실패: {e.response['error']}")
             return jsonify({"text": "Slack 파일 업로드에 실패했습니다."}), 200
     else:
         try:
@@ -291,13 +298,13 @@ def slack_search_trend():
                 channel=data["channel_id"],
                 text=f"🔍 검색 트렌드 결과:\n```{result_json}```"
             )
-            print("[LOG] Slack 메시지 전송 성공")
+            logger.info("[LOG] Slack 메시지 전송 성공")
             return jsonify({"text": "검색 트렌드 결과를 Slack으로 전송했습니다."}), 200
         except SlackApiError as e:
-            print(f"❌ Slack 메시지 전송 실패: {e.response['error']}")
+            logger.info(f"❌ Slack 메시지 전송 실패: {e.response['error']}")
             return jsonify({"text": "Slack 메시지 전송에 실패했습니다."}), 200
 
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    app.run(host="0.0.0.0", port=5000, debug=True)  #  debug=True 추가
